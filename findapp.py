@@ -73,68 +73,57 @@ def message(state, msg):
 # 2. Appeding the filelist to the corrected list if it's not in the blacklist.
 # 3. Creating a textfile with the filtered apps.
 def filtered_apps():
-	filtered_list = []
-	message('success', "[+] Checking for OSX preinstalled apps in: " + apps_dir)
-	for app in system_apps:
-		if "/Applications/" + app.rstrip() in blacklist:
-			print(app.rstrip() + " is blacklisted!")
-			pass
-		else:
-			if app not in filtered_list:
-				filtered_list.append(app)
-				with open(output, "a") as textfile:
-					textfile.write(app)
-			else:
+	try:
+		filtered_list = []
+		message('success', "[+] Checking for OSX preinstalled apps in: " + apps_dir)
+		message("success", "[+] Applications are filtered and saved in the current directory. The file is named: 'filtered_apps.txt")
+		for app in system_apps:
+			if "/Applications/" + app.rstrip() in blacklist:
+				print(app.rstrip() + " is blacklisted!")
 				pass
+			else:
+				filtered_list.append(app)
+				textfile = open(output, "r")
+				if app not in textfile:
+					textfile = open(output, "a")
+					textfile.write(app)
+				else:
+					pass
+	except OSError, FileNotFoundError:
+		message("error", "[+] Error...")
 
-	print("")
-	message("success", "[+] Applications are filtered and saved in the current directory. The file is named: 'filtered_apps.txt")
 	print("")
 
 def show_filtered_list():
-	message("success", "[+] Showing filtered list:")
-	filtered_list = open("./" + output, "r")
-	for app in filtered_list:
-		print(app.rstrip())
-	print("")
+	try:
+		message("success", "[+] Showing filtered list:")
+		filtered_list = open("./" + output, "r")
+		for app in filtered_list:
+			print(app.rstrip())
+		print("")
+	except OSError, FileNotFoundError:
+		message("error", "[+] Error...")
 
 # 1. Reading the output file.
 # 2. Checking the plist for 'CFBundleShortVersionString' aka application version.
 # 3. Returning the version number if possible
 def find_version():
 	message("success", "[+] Checking version numbers (if any):")
-	output = "filtered_apps.txt"
-	filtered_list = open("./" + output, "r")
-	for apps in filtered_list:
-		application = subprocess.Popen("plutil -p /Applications/"+apps.rstrip()+"/Contents/Info.plist | awk '/CFBundleShortVersionString/ {print substr($3, 2, length($3)-2)}'", shell=True, stdout=subprocess.PIPE)
-		version_number = application.communicate()[0]
-		print(version_number.rstrip())
+	try:
+		output = "filtered_apps.txt"
+		filtered_list = open("./" + output, "r")
+		for apps in filtered_list:
+			application = subprocess.Popen("plutil -p /Applications/"+apps.rstrip()+"/Contents/Info.plist | awk '/CFBundleShortVersionString/ {print substr($3, 2, length($3)-2)}'", shell=True, stdout=subprocess.PIPE)
+			version_number = application.communicate()[0]
+			print(version_number.rstrip())
+	except OSError, FileNotFoundError:
+		message("error", "[+] Error...")
 
-	print("")
-	message("success", "[+] Printed all the version numbers above.")
-
-try:
+def Main():
 	filtered_apps()
+	# (Un)comment the command below if you want the filtered list with applications ouput returned
 	show_filtered_list()
 	find_version()
-	
-except OSError:
-	message("error", "[+] Error...")
-# 	# If the directory '/applications' is not found you give it in manually.
-# 	while True:
-# 		print("Couldn't find the " + directory + " folder. Do you want to enter in manually?")
-# 		question = input("(Y)es or (N)o: ")
-# 		print(singlehash)
-# 		if question == "Y":
-# 			new_dir = input("Please enter the place of the Applications folder here: ")
-# 			find_all_apps()
-# 		elif question == "N":
-# 			print("Stopping the script!")
-# 			print(singlehash)
-# 			break
-# 		else:
-# 			print("Wrong input. Try again..")
-# 			print(singlehash)
 
-# except FileNotFoundError:
-# 	print("Couldn't find any .app files. Please check the var 'directory' if it's set right.")
+if __name__ == "__main__":
+	Main()
