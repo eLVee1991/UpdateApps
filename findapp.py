@@ -2,19 +2,27 @@
 
 import glob
 import subprocess
+import os
 
-# hashes to be used in most print statements to sort te code in the terminal.
-singlehash = '''
-######################################################################
-'''
-doublehash = '''
-######################################################################
-######################################################################
-'''
+# Global variables
+apps_dir = ("/Applications")
+system_apps = os.popen("find " + apps_dir + " -iname *.app")
+output = "filterd_apps.txt"
 
-# a list with OSX preinstalled apps. The script needs to skip these
-system_apps = [
-"/Applications/DVD Player.app",
+# Colors
+class colors:
+  HEADER = '\033[95m'
+  BLUE = '\033[94m'
+  GREEN = '\033[92m'
+  WARNING = '\033[93m'
+  FAIL = '\033[91m'
+  END = '\033[0m'
+  BOLD = '\033[1m'
+  UNDERLINE = '\033[4m'
+
+# Blacklist with OSX preinstalled apps. The script needs to skip these
+blacklist = [
+"/Applications/DVD Player.app\n",
 "/Applications/Siri.app",
 "/Applications/QuickTime Player.app",
 "/Applications/Chess.app",
@@ -22,6 +30,7 @@ system_apps = [
 "/Applications/Notes.app"
 "/Applications/Image Capture.app",
 "/Applications/iBooks.app",
+"/Applications/iTunes.app/"
 "/Applications/Numbers.app",
 "/Applications/Preview.app",
 "/Applications/Dashboard.app",
@@ -51,63 +60,58 @@ system_apps = [
 "/Applications/System Preferences.app"
 ]
 
-print(singlehash)
-print("Looking for the directory..")
-print("")
+def message(state, msg):
+	if state == "success":
+		print(colors.GREEN + msg + colors.END)
+	elif state == "error":
+		print(colors.RED + msg + colors.END)
+	else:
+		print(msg)
 
-def find_all_apps():
-	# a list with all the installed apps - the preinstalled OSX app
-	corrected_list = []
-	print("Found the directory ", directory, " and bound to it.")
-	print("Creating a filelist named 'Application_list.txt' in the current dir.")
-	print(singlehash)
-	# using glob to find all .app files in the dir '/applications' set by the var 'directory'
-	for applist in glob.glob(directory+"*.app"):
-		# Checking if .app is in the list of OSX preinstalled apps.
-		if applist in system_apps:
+# 1. Checking if .app is in the list of OSX preinstalled apps.
+# 2. Appeding the filelist to the corrected list if it's not in the blacklist.
+# 3. Creating a textfile with the filterd apps.
+def filter_apps():
+	filterd_list = []
+	message('success', "Check for OSX preinstalled apps in " + apps_dir)
+	for app in system_apps:
+		if app.rstrip() in blacklist:
+			print(app.rstrip() + " is blacklisted!")
 			pass
 		else:
-			# Appeding the filelist to the corrected list if it's not in the dont_list
-			corrected_list.append(applist)
-			# Creating a textfile with all the apps
-			with open("Application_list.txt", "a") as textfile:
-				textfile.write(applist+"\n")
-	print("I stripped the OSX standard applications like safari, mail, siri etc.")
-	print("Here's a list of all the applications")
-	print("")
-	# Looping through all the apps in the corrected list to show a nice list order.
-	for applist in corrected_list:
-		print(applist)
-	print(singlehash)
+			filterd_list.append(app)
+			with open(output, "a") as textfile:
+				textfile.write(app)
 
-"""Ideas: """
-	## Write code here to find all the system versions. If you have commandline tools installed.
-	##Use subprocess.Popen("/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" /Applications/TextEdit.app/Contents/Info.plist")
-	#version = subprocess.Popen("/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" /Applications/TextEdit.app/Contents/Info.plist")
-	#import plistlib
-	#plistlib.readPlist('/Applications/Firefox.app/Contents/Info.plist')['CFBundleShortVersionString']
+	message("success", "Applications are filterd and saved in ")
+
+def show_filterd_list():
+	message("success","Show filterd list...\n")
+	filterd_list = open("./" + output, "r")
+	for app in filterd_list:
+		print(app)
 
 try:
-	# a list that needs to be callable globally
-	directory = ("/Applications/")
-	find_all_apps()
+	filter_apps()
+	# show_filterd_list()
 	
 except OSError:
-	# If the directory '/applications' is not found you give it in manually.
-	while True:
-		print("Couldn't find the " + directory + " folder. Do you want to enter in manually?")
-		question = input("(Y)es or (N)o: ")
-		print(singlehash)
-		if question == "Y":
-			new_dir = input("Please enter the place of the Applications folder here: ")
-			find_all_apps()
-		elif question == "N":
-			print("Stopping the script!")
-			print(singlehash)
-			break
-		else:
-			print("Wrong input. Try again..")
-			print(singlehash)
+	message("error", "Error...")
+# 	# If the directory '/applications' is not found you give it in manually.
+# 	while True:
+# 		print("Couldn't find the " + directory + " folder. Do you want to enter in manually?")
+# 		question = input("(Y)es or (N)o: ")
+# 		print(singlehash)
+# 		if question == "Y":
+# 			new_dir = input("Please enter the place of the Applications folder here: ")
+# 			find_all_apps()
+# 		elif question == "N":
+# 			print("Stopping the script!")
+# 			print(singlehash)
+# 			break
+# 		else:
+# 			print("Wrong input. Try again..")
+# 			print(singlehash)
 
-except FileNotFoundError:
-	print("Couldn't find any .app files. Please check the var 'directory' if it's set right.")
+# except FileNotFoundError:
+# 	print("Couldn't find any .app files. Please check the var 'directory' if it's set right.")
