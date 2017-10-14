@@ -6,7 +6,7 @@ import os
 
 # Global variables
 apps_dir = ("/Applications")
-system_apps = os.popen("find " + apps_dir + " -iname *.app")
+system_apps = os.popen("ls " + apps_dir + " | grep .app")
 output = "filterd_apps.txt"
 
 # Colors
@@ -75,7 +75,7 @@ def filter_apps():
 	filterd_list = []
 	message('success', "Check for OSX preinstalled apps in " + apps_dir)
 	for app in system_apps:
-		if app.rstrip() in blacklist:
+		if "/Applications/" + app.rstrip() in blacklist:
 			print(app.rstrip() + " is blacklisted!")
 			pass
 		else:
