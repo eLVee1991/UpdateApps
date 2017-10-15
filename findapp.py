@@ -1,13 +1,16 @@
 #!/usr/bin/env python
 
-import glob
-import subprocess
 import os
+import subprocess
+import sys
 
 # Global variables
 apps_dir = ("/Applications")
 system_apps = os.popen("ls " + apps_dir + " | grep .app")
-output = "filtered_apps.txt"
+output_apps = "filtered_apps.txt"
+output_versions = "apps_version.txt"
+filtered_list = []
+version_list = []
 
 # Colors
 class colors:
@@ -39,6 +42,7 @@ blacklist = [
 "/Applications/TextEdit.app",
 "/Applications/Automator Loop Utility.app",
 "/Applications/Mail.app",
+"/Applications/Maps.app",
 "/Applications/Safari.app",
 "/Applications/Dictionary.app",
 "/Applications/Contacts.app",
@@ -47,6 +51,8 @@ blacklist = [
 "/Applications/FaceTime.app",
 "/Applications/Keynote.app",
 "/Applications/Mission Control.app",
+"/Applications/Numbers.app",
+"/Applications/Notes.app",
 "/Applications/Pages.app",
 "/Applications/Stickies.app",
 "/Applications/Photos.app",
@@ -66,6 +72,12 @@ def message(state, msg):
 		print(colors.GREEN + msg + colors.END)
 	elif state == "error":
 		print(colors.WARNING + msg + colors.END)
+	elif state == "warning":
+		print(colors.WARNING + msg + colors.END)
+	elif state == "header":
+		print(colors.HEADER + msg + colors.END)
+	elif state == "underline":
+		print(colors.UNDERLINE + msg + colors.END)
 	else:
 		print(msg)
 
@@ -73,57 +85,88 @@ def message(state, msg):
 # 2. Appeding the filelist to the corrected list if it's not in the blacklist.
 # 3. Creating a textfile with the filtered apps.
 def filtered_apps():
+	global filtered_list
 	try:
-		filtered_list = []
-		message('success', "[+] Checking for OSX preinstalled apps in: " + apps_dir)
-		message("success", "[+] Applications are filtered and saved in the current directory. The file is named: 'filtered_apps.txt")
 		for app in system_apps:
 			if "/Applications/" + app.rstrip() in blacklist:
-				print(app.rstrip() + " is blacklisted!")
+				#print(app.rstrip() + " is blacklisted!")
 				pass
 			else:
 				filtered_list.append(app)
-				textfile = open(output, "r")
-				if app not in textfile:
-					textfile = open(output, "a")
-					textfile.write(app)
-				else:
-					pass
 	except OSError, FileNotFoundError:
 		message("error", "[+] Error...")
 
+	return filtered_list
 	print("")
 
-def show_filtered_list():
-	try:
-		message("success", "[+] Showing filtered list:")
-		filtered_list = open("./" + output, "r")
-		for app in filtered_list:
-			print(app.rstrip())
-		print("")
-	except OSError, FileNotFoundError:
-		message("error", "[+] Error...")
-
-# 1. Reading the output file.
-# 2. Checking the plist for 'CFBundleShortVersionString' aka application version.
+# 1. Reading the output_apps file.
+# 2. Checking the plist for 'CFBundleShortVersionString' aka application version. If no plist info is available it's left blank
 # 3. Returning the version number if possible
 def find_version():
-	message("success", "[+] Checking version numbers (if any):")
+	global version_list
 	try:
-		output = "filtered_apps.txt"
-		filtered_list = open("./" + output, "r")
-		for apps in filtered_list:
-			application = subprocess.Popen("plutil -p /Applications/"+apps.rstrip()+"/Contents/Info.plist | awk '/CFBundleShortVersionString/ {print substr($3, 2, length($3)-2)}'", shell=True, stdout=subprocess.PIPE)
-			version_number = application.communicate()[0]
-			print(version_number.rstrip())
+		filtered_apps()
+		for app in filtered_list:
+			application = subprocess.Popen("plutil -p /Applications/"+app.rstrip()+"/Contents/Info.plist | awk '/CFBundleShortVersionString/ {print substr($3, 2, length($3)-2)}'", shell=True, stdout=subprocess.PIPE)
+			number = app.rstrip()+" "+str(application.communicate()[0])
+			if number not in version_list:
+				version_list.append(number)
+			else:
+				pass
 	except OSError, FileNotFoundError:
 		message("error", "[+] Error...")
 
+	return version_list
+	print("")
+
 def Main():
-	filtered_apps()
-	# (Un)comment the command below if you want the filtered list with applications ouput returned
-	show_filtered_list()
-	find_version()
+	message("header", '''
+8b    d8    db     dP""b8        db    88""Yb 88""Yb 
+88b  d88   dPYb   dP   `"       dPYb   88__dP 88__dP 
+88YbdP88  dP__Yb  Yb           dP__Yb  88"""  88"""  
+88 YY 88 dP""""Yb  YboodP     dP""""Yb 88     88     
+                                                                                                     
+   88   88 88""Yb 8888b.     db    888888 888888        
+   88   88 88__dP  8I  Yb   dPYb     88   88__          
+   Y8   8P 88"""   8I  dY  dP__Yb    88   88""          
+   `YbodP' 88     8888Y"  dP""""Yb   88   888888 ''')
+
+	message("underline", '''
+version 1.0
+Created by eLVee & rickdaalhuizen
+''')
+	argument = sys.argv
+	try:
+		if argument[1]== "-a":
+			filtered_apps()
+			message('success', "[+] Checking for OSX preinstalled apps in " + apps_dir + " and removing them from the list")
+			message('success', "[+] Here's a list of all the NOT preinstalled apps in " + apps_dir + ":")
+			for apps in filtered_list:
+				print(apps.rstrip())
+		elif argument[1] == "-v":
+			filtered_apps()
+			message("success", "[+] Checking version numbers of applications in " + apps_dir + " (if any):")
+			find_version()
+			for versions in version_list:
+				print(versions.rstrip())
+		elif argument[1] == "-h":
+			message("warning", """
+usage: python findapp.py [-a] [-v] [-b]
+optional arguments:
+  -a   Creates a list named 'filtered_apps.txt' in the current dir.
+  -v.  Creates a list named 'app_version.txt' in the current dir.
+  -h.  Show this help message and exit
+""")
+			exit()
+	except IndexError:
+		message("warning", """
+usage: python findapp.py [-a] [-v] [-b]
+optional arguments:
+  -a   Creates a list named 'filtered_apps.txt' in the current dir.
+  -v.  Creates a list named 'app_version.txt' in the current dir.
+  -h.  Show this help message and exit
+""")
+		exit()
 
 if __name__ == "__main__":
 	Main()
