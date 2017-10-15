@@ -7,10 +7,10 @@ import sys
 # Global variables
 apps_dir = ("/Applications")
 system_apps = os.popen("ls " + apps_dir + " | grep .app")
-output_apps = "filtered_apps.txt"
-output_versions = "apps_version.txt"
+appstore_apps = os.popen("""find /Applications -path '*Contents/_MASReceipt/receipt' -maxdepth 4 -print |\sed 's#.app/Contents/_MASReceipt/receipt#.app#g; s#/Applications/##'""")
 filtered_list = []
 version_list = []
+appstore_list = []
 
 # Colors
 class colors:
@@ -26,6 +26,9 @@ class colors:
 # Blacklist with OSX preinstalled apps. The script needs to skip these
 blacklist = [
 "/Applications/Battery Monitor.app"
+"/Applications/pwSafe.app",
+"/Applications/Xcode.app",
+"/Applications/Image Capture",
 "/Applications/DVD Player.app",
 "/Applications/Siri.app",
 "/Applications/QuickTime Player.app",
@@ -78,17 +81,22 @@ def message(state, msg):
 		print(colors.HEADER + msg + colors.END)
 	elif state == "underline":
 		print(colors.UNDERLINE + msg + colors.END)
+	elif state == "bold":
+		print(colors.BOLD + msg + colors.END)
 	else:
 		print(msg)
 
 # 1. Checking if .app is in the list of OSX preinstalled apps.
 # 2. Appeding the filelist to the corrected list if it's not in the blacklist.
-# 3. Creating a textfile with the filtered apps.
+# 3. Returning the complete list.
 def filtered_apps():
 	global filtered_list
 	try:
 		for app in system_apps:
 			if "/Applications/" + app.rstrip() in blacklist:
+				#print(app.rstrip() + " is blacklisted!")
+				pass
+			elif "/Applications/" + app.rstrip() in appstore_list:
 				#print(app.rstrip() + " is blacklisted!")
 				pass
 			else:
@@ -97,11 +105,25 @@ def filtered_apps():
 		message("error", "[+] Error...")
 
 	return filtered_list
-	print("")
+
+def check_appstore_apps():
+	global appstore_list
+	try:
+		for app in appstore_apps:
+			if "/Applications/" + app.rstrip() in blacklist:
+				#print(app.rstrip() + " is blacklisted!")
+				pass
+			else:
+				appstore_list.append(app)
+	except OSError, FileNotFoundError:
+		message("error", "[+] Error...")
+
+	return appstore_list
 
 # 1. Reading the output_apps file.
 # 2. Checking the plist for 'CFBundleShortVersionString' aka application version. If no plist info is available it's left blank
-# 3. Returning the version number if possible
+# 3. Appending item to the list.
+# 3. Returning the list with application.
 def find_version():
 	global version_list
 	try:
@@ -117,10 +139,9 @@ def find_version():
 		message("error", "[+] Error...")
 
 	return version_list
-	print("")
 
 def Main():
-	message("header", '''
+	message("bold", '''
 8b    d8    db     dP""b8        db    88""Yb 88""Yb 
 88b  d88   dPYb   dP   `"       dPYb   88__dP 88__dP 
 88YbdP88  dP__Yb  Yb           dP__Yb  88"""  88"""  
@@ -138,12 +159,14 @@ Created by eLVee & rickdaalhuizen
 	argument = sys.argv
 	try:
 		if argument[1]== "-a":
+			check_appstore_apps()
 			filtered_apps()
 			message('success', "[+] Checking for OSX preinstalled apps in " + apps_dir + " and removing them from the list")
 			message('success', "[+] Here's a list of all the NOT preinstalled apps in " + apps_dir + ":")
 			for apps in filtered_list:
 				print(apps.rstrip())
 		elif argument[1] == "-v":
+			check_appstore_apps()
 			filtered_apps()
 			message("success", "[+] Checking version numbers of applications in " + apps_dir + " (if any):")
 			find_version()
