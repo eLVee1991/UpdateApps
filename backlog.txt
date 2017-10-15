@@ -1,6 +1,4 @@
-"""Ideas: """
-## Write code here to find all the system versions. If you have commandline tools installed.
-##Use subprocess.Popen("/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" /Applications/TextEdit.app/Contents/Info.plist")
-#version = subprocess.Popen("/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" /Applications/TextEdit.app/Contents/Info.plist")
-#import plistlib
-#plistlib.readPlist('/Applications/Firefox.app/Contents/Info.plist')['CFBundleShortVersionString']
+Problems:
+
+Created a check_appstore_apps() function and get a list returned. But the filtered_apps() function doesn't filter them out.
+To see this error uncheck all the #print(app.rstrip() + " is blacklisted!") in both functions.
